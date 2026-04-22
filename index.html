@@ -90,7 +90,16 @@
     color: rgba(255,255,255,0.5);
     text-align: right;
     line-height: 1.7;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;
   }
+  .api-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    background: rgba(255,255,255,0.1); border-radius: 20px;
+    padding: 0.2rem 0.6rem; font-size: 0.65rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .api-badge:hover { background: rgba(255,255,255,0.18); }
+  .api-badge-dot { width: 6px; height: 6px; border-radius: 50%; }
 
   /* ── PROGRESS WEIGHT ── */
   .weight-progress {
@@ -476,6 +485,80 @@
 
   .no-data { text-align: center; padding: 2.2rem 1rem; color: var(--text-light); font-size: 0.84rem; font-style: italic; font-family: 'Cormorant Garamond', serif; }
 
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(30,42,54,0.85);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: var(--cream);
+    border-radius: 20px;
+    padding: 2rem 1.75rem;
+    width: 100%; max-width: 380px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+  .modal-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem; font-weight: 300;
+    color: var(--slate); margin-bottom: 0.25rem;
+  }
+  .modal-logo em { font-style: italic; color: var(--copper); }
+  .modal-subtitle {
+    font-size: 0.78rem; color: var(--text-light);
+    margin-bottom: 1.75rem; line-height: 1.5;
+  }
+  .modal-label {
+    font-size: 0.7rem; font-weight: 500;
+    color: var(--text-mid); text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 0.5rem;
+    display: block;
+  }
+  .modal-input {
+    width: 100%;
+    background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.85rem 1rem;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    color: var(--text-dark); outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+  }
+  .modal-input:focus { border-color: var(--slate); }
+  .modal-hint {
+    font-size: 0.7rem; color: var(--text-light);
+    margin-bottom: 1.25rem; line-height: 1.5;
+  }
+  .modal-hint a { color: var(--copper); text-decoration: none; }
+  .modal-btn {
+    width: 100%; padding: 0.85rem;
+    background: var(--slate); color: white;
+    border: none; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem; font-weight: 500;
+    cursor: pointer; transition: background 0.2s;
+    margin-bottom: 0.75rem;
+  }
+  .modal-btn:hover { background: var(--slate-mid); }
+  .modal-error {
+    font-size: 0.75rem; color: var(--judo-red);
+    text-align: center; min-height: 1.2rem;
+  }
+  .api-key-status {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem; color: var(--text-light);
+    padding: 0.5rem 0;
+    cursor: pointer;
+  }
+  .api-key-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--stretch-green); flex-shrink: 0;
+  }
+  .api-key-dot.missing { background: var(--judo-red); }
+
   /* ── TODAY BANNER ── */
   .today-banner {
     background: linear-gradient(135deg, #edf3f8, #f7f4f0);
@@ -511,7 +594,9 @@
     <div>
       <h1>Performance<br><em>Nutrition</em></h1>
     </div>
-    <div class="header-meta" id="headerDate"></div>
+    <div class="header-meta">
+      <span id="headerDate"></span>
+    </div>
   </div>
   <div class="weight-progress">
     <div class="weight-labels">
@@ -556,19 +641,20 @@
       <label>Repas (précise matin / midi / soir)</label>
       <textarea id="mealInput" placeholder="Ex :&#10;Midi : Salade de carottes, lentilles, brochettes de poulet, yaourt nature&#10;Soir : Crudités diverses, emmental, yaourt nature&#10;&#10;Si matin non précisé → fromage blanc + muesli par défaut"></textarea>
     </div>
-    <button class="btn-primary" id="analyzeMealBtn" onclick="analyzeMeal()">
-      ⚡ Analyser et conseiller
+    <button class="btn-primary" onclick="openClaude()">
+      💬 Analyser avec Claude.ai →
     </button>
-    <div id="mealLoading" class="loading" style="display:none">
-      <div class="spinner"></div>
-      <span>Analyse nutritionnelle en cours…</span>
+    <div style="font-size:0.72rem;color:var(--text-light);text-align:center;margin-top:0.6rem;line-height:1.5;">
+      Ouvre Claude.ai avec ton profil et tes repas pré-remplis.<br>Copie la réponse ici si tu veux la garder.
     </div>
-    <div id="mealResponse" class="ai-response"></div>
   </div>
 
   <div class="card" id="lastMealCard">
     <div class="card-title"><span>📋</span> Dernière analyse</div>
-    <div id="lastMealContent" style="font-size:0.82rem;line-height:1.75;color:var(--text-mid);white-space:pre-wrap;"></div>
+    <div class="input-area" style="margin-bottom:0">
+      <label>Coller la réponse de Claude</label>
+      <textarea id="lastMealContent" placeholder="Colle ici la réponse de Claude.ai pour la sauvegarder…" style="min-height:120px;font-size:0.82rem;line-height:1.75;color:var(--text-mid);" oninput="saveMealResponse()"></textarea>
+    </div>
   </div>
 </div>
 
@@ -911,6 +997,38 @@ let sportChecks = JSON.parse(localStorage.getItem('sportChecks_user43') || '{}')
 const INITIAL_WEIGHT = 75.0;
 const TARGET_WEIGHT = 71.0;
 
+// ─── OPEN CLAUDE.AI ──────────────────────────────────────
+function openClaude() {
+  const input = document.getElementById('mealInput').value.trim();
+  const dateVal = document.getElementById('mealDate').value;
+  const dateStr = dateVal
+    ? new Date(dateVal+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
+    : 'aujourd\'hui';
+  const dow = dateVal ? new Date(dateVal+'T12:00:00').getDay() : new Date().getDay();
+  const sportDay = {1:'Judo 1h30',3:'Judo 2h ou HIIT 45min',5:'Musculation + course'};
+  const sport = sportDay[dow] ? `\nSport du jour : ${sportDay[dow]}` : '';
+
+  const profil = `Tu es mon coach nutritionnel. Mon profil : homme 43 ans, 172 cm, 75 kg, objectif 71 kg, sédentaire au bureau. Sport : judo lundi 1h30, judo/HIIT mercredi, muscu+course vendredi. Macros cibles : 2050 kcal/jour, 155g protéines, 215g glucides, 64g lipides. Petit-déjeuner par défaut si non précisé : fromage blanc 200g + muesli 60g.${sport}
+
+Repas du ${dateStr} :
+${input || '[non précisé]'}
+
+Donne-moi les quantités recommandées pour chaque aliment (en grammes) et le bilan macro de la journée.`;
+
+  const url = 'https://claude.ai/new?q=' + encodeURIComponent(profil);
+  window.open(url, '_blank');
+}
+
+// ─── SAVE MEAL RESPONSE ──────────────────────────────────
+function saveMealResponse() {
+  const val = document.getElementById('lastMealContent').value;
+  localStorage.setItem('lastMealResponse', val);
+}
+
+
+const INITIAL_WEIGHT = 75.0;
+const TARGET_WEIGHT = 71.0;
+
 // ─── INIT ───────────────────────────────────────────────
 window.addEventListener('load', () => {
   initHeader();
@@ -921,6 +1039,12 @@ window.addEventListener('load', () => {
   document.getElementById('mealDate').valueAsDate = new Date();
   document.getElementById('weightDateLabel').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
   updateTodayBanner();
+  // Restore last meal response
+  const saved = localStorage.getItem('lastMealResponse');
+  if (saved) {
+    document.getElementById('lastMealContent').value = saved;
+    document.getElementById('lastMealCard').style.display = 'block';
+  }
   setTimeout(() => {
     document.getElementById('weightProgressBar').style.width = calcProgress() + '%';
   }, 400);
@@ -1130,83 +1254,6 @@ function updateSportChecks() {
     if (el) { const on = !!sportChecks[id]; el.classList.toggle('checked',on); if(on) count++; }
   });
   document.getElementById('sportCount').textContent = count + ' / 4';
-}
-
-// ─── ANALYSE REPAS ───────────────────────────────────────
-async function analyzeMeal() {
-  const input = document.getElementById('mealInput').value.trim();
-  if (!input) { alert('Décris tes repas avant de lancer l\'analyse.'); return; }
-  const dateVal = document.getElementById('mealDate').value;
-  const dateStr = dateVal
-    ? new Date(dateVal+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})
-    : 'aujourd\'hui';
-  const dow = dateVal ? new Date(dateVal+'T12:00:00').getDay() : new Date().getDay();
-  const sportDay = {1:'Judo 1h30 (lundi)',3:'Judo 2h ou HIIT 45min (mercredi)',5:'Musculation + course (vendredi)'};
-  const todaySport = sportDay[dow] || null;
-
-  const btn = document.getElementById('analyzeMealBtn');
-  const loading = document.getElementById('mealLoading');
-  const responseDiv = document.getElementById('mealResponse');
-
-  btn.disabled = true;
-  loading.style.display = 'flex';
-  responseDiv.classList.remove('visible');
-  responseDiv.textContent = '';
-
-  const systemPrompt = `Tu es un architecte nutritionnel expert pour la performance sportive. Tu accompagnes un homme de 43 ans, 172 cm, 75 kg (objectif 71 kg), sédentaire au travail (bureau).
-
-PROGRAMME SPORTIF :
-- Lundi : Judo 1h30
-- Mercredi : Judo 2h OU HIIT 30-45 min
-- Vendredi : Musculation corps + haltères à domicile + course 20-40 min
-- Chaque matin : étirements 5 min
-
-OBJECTIFS CALORIQUES (phase perte) :
-- Base : 2 050 kcal/jour
-- Jours judo/HIIT : +40 à +50 g glucides supplémentaires
-- Jours muscu+course : +30 g glucides supplémentaires
-- Macros base : Protéines 155g (30%) | Glucides 215g (42%) | Lipides 64g (28%)
-${todaySport ? `- AUJOURD'HUI : ${todaySport} → adapter les glucides en conséquence` : ''}
-
-PETIT-DÉJEUNER PAR DÉFAUT (si non précisé) : Fromage blanc 0% 200g + Muesli sans sucre 60g + Tisane ≈ 450 kcal · P 25g · G 65g · L 10g
-
-FORMAT DE RÉPONSE (concis, pratique, bienveillant) :
-1. Pour chaque repas : liste les quantités précises recommandées pour chaque aliment (en grammes)
-2. Total kcal + macros de la journée
-3. Évaluation courte : objectif atteint ? manques ?
-4. 1-2 conseils ciblés maximum
-
-Sois direct, précis et pratique. Pas de répétition des explications générales.`;
-
-  const userPrompt = `Repas du ${dateStr} :
-${input}
-
-Donne-moi les quantités recommandées et le bilan nutritionnel.`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.map(b=>b.text||'').join('') || 'Erreur de réponse.';
-    responseDiv.textContent = text;
-    responseDiv.classList.add('visible');
-    document.getElementById('lastMealCard').style.display = 'block';
-    document.getElementById('lastMealContent').textContent = text;
-  } catch(e) {
-    responseDiv.textContent = '⚠️ Erreur de connexion. Vérifie ta connexion internet.';
-    responseDiv.classList.add('visible');
-  } finally {
-    btn.disabled = false;
-    loading.style.display = 'none';
-  }
 }
 </script>
 <script>
